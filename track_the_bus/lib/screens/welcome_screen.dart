@@ -53,9 +53,18 @@ class WelcomeScreen extends StatelessWidget {
                     );
                   },
 
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
 
-                  child: const Text("Get Started"),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+
+                  child: const Text(
+                    "Get Started",
+                    style: TextStyle(fontSize: 20, color: Colors.white),
+                  ),
                 ),
               ),
 
