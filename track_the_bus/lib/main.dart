@@ -1,7 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
+
+import 'screens/dashboard_screen.dart';
 import 'screens/welcome_screen.dart';
 
 void main() async {
@@ -20,7 +23,10 @@ class TrackTheBusApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Track The Bus',
-      home: const WelcomeScreen(),
+
+      home: FirebaseAuth.instance.currentUser != null
+          ? const DashboardScreen()
+          : const WelcomeScreen(),
     );
   }
 }
