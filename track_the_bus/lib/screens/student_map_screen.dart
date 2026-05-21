@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'dart:math';
 
 class StudentMapScreen extends StatefulWidget {
   const StudentMapScreen({super.key});
@@ -11,6 +12,24 @@ class StudentMapScreen extends StatefulWidget {
 }
 
 class _StudentMapScreenState extends State<StudentMapScreen> {
+  double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371; // Earth radius in km
+
+    double dLat = (lat2 - lat1) * pi / 180;
+    double dLon = (lon2 - lon1) * pi / 180;
+
+    double a =
+        sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1 * pi / 180) *
+            cos(lat2 * pi / 180) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+
+    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return R * c;
+  }
+
   GoogleMapController? mapController;
 
   LatLng busPosition = const LatLng(23.8103, 90.4125);
@@ -97,6 +116,22 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             final data = snapshot.data!.data() as Map<String, dynamic>;
 
             busPosition = LatLng(data['latitude'], data['longitude']);
+
+            double distance = calculateDistance(
+              busPosition.latitude,
+              busPosition.longitude,
+              destination.latitude,
+              destination.longitude,
+            );
+            bool hasAlertShown = false;
+
+            if (distance < 0.5 && !hasAlertShown) {
+              hasAlertShown = true;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("🚨 Bus is near your stop!")),
+              );
+            }
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
               createRoute();
