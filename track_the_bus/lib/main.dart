@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/login_screen.dart';
 
 void main() {
   runApp(const TrackTheBusApp());
@@ -60,7 +61,14 @@ class WelcomeScreen extends StatelessWidget {
                 height: 60,
 
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                    );
+                  },
 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
