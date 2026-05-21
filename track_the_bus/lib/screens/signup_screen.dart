@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'signup_screen.dart';
 
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends StatelessWidget {
+  const SignupScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +17,7 @@ class LoginScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
 
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 30),
 
                 Center(
                   child: Image.asset('assets/images/logo.png', height: 100),
@@ -27,8 +26,8 @@ class LoginScreen extends StatelessWidget {
                 const SizedBox(height: 40),
 
                 const Text(
-                  "Welcome\nBack",
-                  style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+                  "Create an\nAccount",
+                  style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
                 ),
 
                 const SizedBox(height: 40),
@@ -65,19 +64,25 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 20),
 
-                Align(
-                  alignment: Alignment.centerRight,
+                TextField(
+                  obscureText: true,
 
-                  child: TextButton(
-                    onPressed: () {},
+                  decoration: InputDecoration(
+                    hintText: "Confirm Password",
 
-                    child: const Text("Forgot Password?"),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 30),
 
                 SizedBox(
                   width: double.infinity,
@@ -95,7 +100,7 @@ class LoginScreen extends StatelessWidget {
                     ),
 
                     child: const Text(
-                      "Login",
+                      "Create Account",
                       style: TextStyle(fontSize: 20, color: Colors.white),
                     ),
                   ),
@@ -107,20 +112,15 @@ class LoginScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
 
                   children: [
-                    const Text("Don't have an account?"),
+                    const Text("Already have an account?"),
 
                     TextButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SignupScreen(),
-                          ),
-                        );
+                        Navigator.pop(context);
                       },
 
                       child: const Text(
-                        "Sign Up",
+                        "Login",
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
