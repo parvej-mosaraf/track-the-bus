@@ -64,11 +64,59 @@ class _DriverScreenState extends State<DriverScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text("Driver Mode")),
 
-      body: const Center(
-        child: Text(
-          "Sharing Live Bus Location...",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('stop_requests')
+            .where('status', isEqualTo: 'pending')
+            .snapshots(),
+
+        builder: (context, snapshot) {
+          int requestCount = 0;
+
+          if (snapshot.hasData) {
+            requestCount = snapshot.data!.docs.length;
+          }
+
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+
+              children: [
+                const Text(
+                  "Sharing Live Bus Location",
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+
+                const SizedBox(height: 40),
+
+                Text(
+                  "Stop Requests: $requestCount",
+                  style: const TextStyle(
+                    fontSize: 32,
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                ElevatedButton(
+                  onPressed: () async {
+                    final requests = await FirebaseFirestore.instance
+                        .collection('stop_requests')
+                        .get();
+
+                    for (var doc in requests.docs) {
+                      await doc.reference.update({'status': 'completed'});
+                    }
+                  },
+
+                  child: const Text("Clear Requests"),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

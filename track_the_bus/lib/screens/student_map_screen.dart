@@ -18,6 +18,23 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Live Bus Tracking")),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await FirebaseFirestore.instance.collection('stop_requests').add({
+            'requestedAt': FieldValue.serverTimestamp(),
+
+            'status': 'pending',
+          });
+
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Stop Requested")));
+        },
+
+        label: const Text("Request Stop"),
+
+        icon: const Icon(Icons.stop_circle),
+      ),
 
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
