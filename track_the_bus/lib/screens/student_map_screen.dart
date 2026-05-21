@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'dart:math';
+import 'package:geolocator/geolocator.dart';
 
 class StudentMapScreen extends StatefulWidget {
   const StudentMapScreen({super.key});
@@ -12,6 +13,42 @@ class StudentMapScreen extends StatefulWidget {
 }
 
 class _StudentMapScreenState extends State<StudentMapScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    getUserLocation();
+  }
+
+  Future<void> getUserLocation() async {
+    LocationPermission permission = await Geolocator.requestPermission();
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition();
+
+    setState(() {
+      userPosition = LatLng(position.latitude, position.longitude);
+    });
+  }
+
+  final TextEditingController searchController = TextEditingController();
+
+  LatLng userPosition = const LatLng(0, 0);
+
+  void goToBusLocation() {
+    mapController?.animateCamera(CameraUpdate.newLatLng(busPosition));
+  }
+
+  Future<void> goToUserLocation() async {
+    await getUserLocation();
+
+    mapController?.animateCamera(CameraUpdate.newLatLng(userPosition));
+  }
+
   double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
     const R = 6371; // Earth radius in km
 
@@ -45,9 +82,7 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
 
     routeLoading = true;
 
-    PolylinePoints polylinePoints = PolylinePoints(
-      apiKey: 'AIzaSyB_RcwAZhW0mJhkNVApmNoBE1hgoGMXYog',
-    );
+    PolylinePoints polylinePoints = PolylinePoints(apiKey: 'api_key_here');
 
     PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
       request: PolylineRequest(
@@ -85,26 +120,129 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Live Bus Tracking")),
+      appBar: AppBar(
+        titleSpacing: 0,
 
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await FirebaseFirestore.instance.collection('stop_requests').add({
-            'requestedAt': FieldValue.serverTimestamp(),
+        title: Padding(
+          padding: const EdgeInsets.only(right: 12),
 
-            'status': 'pending',
-          });
+          child: Container(
+            height: 46,
 
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text("Stop Requested")));
-        },
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
 
-        label: const Text("Request Stop"),
+              borderRadius: BorderRadius.circular(30),
+            ),
 
-        icon: const Icon(Icons.stop_circle),
+            child: TextField(
+              controller: searchController,
+
+              decoration: const InputDecoration(
+                hintText: "Search route...",
+
+                prefixIcon: Icon(Icons.search),
+
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+        ),
       ),
 
+      drawer: Drawer(
+        child: Column(
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Colors.blue),
+
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                mainAxisAlignment: MainAxisAlignment.end,
+
+                children: const [
+                  CircleAvatar(radius: 30, child: Icon(Icons.person)),
+
+                  SizedBox(height: 12),
+
+                  Text(
+                    "Student User",
+
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text("Profile"),
+              onTap: () {},
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text("Notice"),
+              onTap: () {},
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text("Settings"),
+              onTap: () {},
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.help),
+              title: const Text("Help & Feedback"),
+              onTap: () {},
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text("Logout"),
+
+              onTap: () async {
+                Navigator.pop(context);
+              },
+            ),
+
+            const Spacer(),
+
+            const Padding(
+              padding: EdgeInsets.all(16),
+
+              child: Text(
+                "Version 2026.0.0",
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      // floatingActionButton: FloatingActionButton.extended(
+      //   onPressed: () async {
+      //     await FirebaseFirestore.instance.collection('stop_requests').add({
+      //       'requestedAt': FieldValue.serverTimestamp(),
+
+      //       'status': 'pending',
+      //     });
+
+      //     ScaffoldMessenger.of(
+      //       context,
+      //     ).showSnackBar(const SnackBar(content: Text("Stop Requested")));
+      //   },
+
+      //   label: const Text("Request Stop"),
+
+      //   icon: const Icon(Icons.stop_circle),
+      // ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('bus_locations')
@@ -123,14 +261,13 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               destination.latitude,
               destination.longitude,
             );
-            bool hasAlertShown = false;
 
-            if (distance < 0.5 && !hasAlertShown) {
-              hasAlertShown = true;
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("🚨 Bus is near your stop!")),
-              );
+            if (distance < 0.5) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("🚨 Bus is near your stop!")),
+                );
+              });
             }
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -138,64 +275,117 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             });
           }
 
-          return Column(
+          return Stack(
             children: [
-              Container(
-                width: double.infinity,
+              GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: busPosition,
+                  zoom: 15,
+                ),
 
-                padding: const EdgeInsets.all(16),
+                markers: {
+                  Marker(
+                    markerId: const MarkerId('bus'),
 
-                color: Colors.blue,
+                    position: busPosition,
+                  ),
 
-                child: const Column(
-                  children: [
-                    Text(
-                      "Bus A",
+                  Marker(
+                    markerId: const MarkerId('user'),
 
-                      style: TextStyle(
-                        fontSize: 24,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    position: userPosition,
+
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                      BitmapDescriptor.hueBlue,
                     ),
+                  ),
+                },
 
-                    SizedBox(height: 8),
+                polylines: polylines,
 
-                    Text(
-                      "Estimated Arrival: 5 mins",
+                myLocationEnabled: true,
 
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                myLocationButtonEnabled: false,
+
+                onMapCreated: (controller) {
+                  mapController = controller;
+                },
+              ),
+
+              Positioned(
+                top: 20,
+                left: 16,
+                right: 16,
+
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+
+                  child: TextField(
+                    controller: searchController,
+
+                    decoration: const InputDecoration(
+                      hintText: "Search route...",
+
+                      icon: Icon(Icons.search),
+
+                      border: InputBorder.none,
                     ),
-                  ],
+                  ),
                 ),
               ),
 
-              Expanded(
-                child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: busPosition,
-                    zoom: 15,
-                  ),
+              Positioned(
+                bottom: 20,
+                left: 20,
 
-                  polylines: polylines,
+                child: Row(
+                  children: [
+                    FloatingActionButton(
+                      heroTag: "stop",
 
-                  markers: {
-                    Marker(
-                      markerId: const MarkerId('bus'),
+                      onPressed: () async {
+                        await FirebaseFirestore.instance
+                            .collection('stop_requests')
+                            .add({
+                              'requestedAt': FieldValue.serverTimestamp(),
 
-                      position: busPosition,
+                              'status': 'pending',
+                            });
 
-                      infoWindow: const InfoWindow(title: "University Bus"),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Stop Requested")),
+                        );
+                      },
+
+                      child: const Icon(Icons.stop_circle),
                     ),
-                  },
 
-                  myLocationEnabled: true,
+                    const SizedBox(width: 12),
 
-                  myLocationButtonEnabled: true,
+                    FloatingActionButton(
+                      heroTag: "bus",
 
-                  onMapCreated: (controller) {
-                    mapController = controller;
-                  },
+                      onPressed: goToBusLocation,
+
+                      child: const Icon(Icons.directions_bus),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    FloatingActionButton(
+                      heroTag: "me",
+
+                      onPressed: goToUserLocation,
+
+                      child: const Icon(Icons.my_location),
+                    ),
+                  ],
                 ),
               ),
             ],
