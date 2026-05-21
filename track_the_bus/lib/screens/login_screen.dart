@@ -2,9 +2,20 @@ import 'package:flutter/material.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dashboard_screen.dart';
+
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController emailController = TextEditingController();
+
+  final TextEditingController passwordController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,6 +46,7 @@ class LoginScreen extends StatelessWidget {
                 const SizedBox(height: 40),
 
                 TextField(
+                  controller: emailController,
                   decoration: InputDecoration(
                     hintText: "Enter Student ID or Email",
 
@@ -51,6 +63,7 @@ class LoginScreen extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 TextField(
+                  controller: passwordController,
                   obscureText: true,
 
                   decoration: InputDecoration(
@@ -92,7 +105,39 @@ class LoginScreen extends StatelessWidget {
                   height: 60,
 
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      try {
+                        await FirebaseAuth.instance.signInWithEmailAndPassword(
+                          email: emailController.text.trim(),
+                          password: passwordController.text.trim(),
+                        );
+
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const DashboardScreen(),
+                          ),
+                        );
+                      } on FirebaseAuthException catch (e) {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              title: const Text("Login Error"),
+                              content: Text(e.message ?? "Login Failed"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: const Text("OK"),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      }
+                    },
 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
