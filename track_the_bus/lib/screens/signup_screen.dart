@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -16,6 +17,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   final TextEditingController confirmPasswordController =
       TextEditingController();
+  String selectedRole = 'student';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,6 +99,39 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+
+                  child: DropdownButton<String>(
+                    value: selectedRole,
+
+                    isExpanded: true,
+
+                    underline: const SizedBox(),
+
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'student',
+                        child: Text("Student"),
+                      ),
+
+                      DropdownMenuItem(value: 'driver', child: Text("Driver")),
+                    ],
+
+                    onChanged: (value) {
+                      setState(() {
+                        selectedRole = value!;
+                      });
+                    },
+                  ),
+                ),
 
                 const SizedBox(height: 30),
 
@@ -129,6 +164,16 @@ class _SignupScreenState extends State<SignupScreen> {
                             content: Text("Account Created Successfully"),
                           ),
                         );
+
+                        User? user = FirebaseAuth.instance.currentUser;
+
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(user!.uid)
+                            .set({
+                              'email': emailController.text.trim(),
+                              'role': selectedRole,
+                            });
 
                         Navigator.pop(context);
                       } on FirebaseAuthException catch (e) {

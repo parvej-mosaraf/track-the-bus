@@ -5,6 +5,12 @@ import 'forgot_password_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'map_screen.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'driver_screen.dart';
+import 'student_map_screen.dart';
+import 'admin_screen.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -112,11 +118,29 @@ class _LoginScreenState extends State<LoginScreen> {
                           password: passwordController.text.trim(),
                         );
 
+                        User? user = FirebaseAuth.instance.currentUser;
+
+                        DocumentSnapshot userDoc = await FirebaseFirestore
+                            .instance
+                            .collection('users')
+                            .doc(user!.uid)
+                            .get();
+
+                        String role = userDoc['role'];
+
+                        Widget nextScreen;
+
+                        if (role == 'driver') {
+                          nextScreen = const DriverScreen();
+                        } else if (role == 'admin') {
+                          nextScreen = const AdminScreen();
+                        } else {
+                          nextScreen = const StudentMapScreen();
+                        }
+
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const MapScreen(),
-                          ),
+                          MaterialPageRoute(builder: (context) => nextScreen),
                         );
                       } on FirebaseAuthException catch (e) {
                         showDialog(
