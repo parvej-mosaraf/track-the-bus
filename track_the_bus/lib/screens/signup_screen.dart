@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
 
-class SignupScreen extends StatelessWidget {
+import 'package:firebase_auth/firebase_auth.dart';
+
+class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen> {
+  final TextEditingController emailController = TextEditingController();
+
+  final TextEditingController passwordController = TextEditingController();
+
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,6 +46,7 @@ class SignupScreen extends StatelessWidget {
                 const SizedBox(height: 40),
 
                 TextField(
+                  controller: emailController,
                   decoration: InputDecoration(
                     hintText: "Enter Student ID or Email",
 
@@ -51,6 +65,7 @@ class SignupScreen extends StatelessWidget {
                 TextField(
                   obscureText: true,
 
+                  controller: passwordController,
                   decoration: InputDecoration(
                     hintText: "Enter Password",
 
@@ -69,6 +84,7 @@ class SignupScreen extends StatelessWidget {
                 TextField(
                   obscureText: true,
 
+                  controller: confirmPasswordController,
                   decoration: InputDecoration(
                     hintText: "Confirm Password",
 
@@ -89,7 +105,55 @@ class SignupScreen extends StatelessWidget {
                   height: 60,
 
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      if (passwordController.text !=
+                          confirmPasswordController.text) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Passwords do not match"),
+                          ),
+                        );
+
+                        return;
+                      }
+
+                      try {
+                        await FirebaseAuth.instance
+                            .createUserWithEmailAndPassword(
+                              email: emailController.text.trim(),
+                              password: passwordController.text.trim(),
+                            );
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Account Created Successfully"),
+                          ),
+                        );
+
+                        Navigator.pop(context);
+                      } on FirebaseAuthException catch (e) {
+                        print("Firebase Error Code: ${e.code}");
+                        print("Firebase Error Message: ${e.message}");
+
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              title: const Text("Signup Error"),
+                              content: Text(e.message ?? "Unknown Error"),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: const Text("OK"),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      }
+                    },
 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
