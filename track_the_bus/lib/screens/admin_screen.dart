@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'create_notice_screen.dart';
 
 class AdminScreen extends StatelessWidget {
   const AdminScreen({super.key});
@@ -7,7 +8,23 @@ class AdminScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Admin Dashboard")),
+      appBar: AppBar(
+        title: const Text("Admin Dashboard"),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CreateNoticeScreen(),
+                ),
+              );
+            },
+
+            icon: const Icon(Icons.add_alert),
+          ),
+        ],
+      ),
 
       body: Padding(
         padding: const EdgeInsets.all(16),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'create_notice_screen.dart';
 
 class DriverScreen extends StatefulWidget {
   const DriverScreen({super.key});
@@ -62,7 +63,23 @@ class _DriverScreenState extends State<DriverScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Driver Mode")),
+      appBar: AppBar(
+        title: const Text("Driver Mode"),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CreateNoticeScreen(),
+                ),
+              );
+            },
+
+            icon: const Icon(Icons.add_alert),
+          ),
+        ],
+      ),
 
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance

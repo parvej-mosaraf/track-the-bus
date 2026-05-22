@@ -172,7 +172,17 @@ class _SignupScreenState extends State<SignupScreen> {
                             .doc(user!.uid)
                             .set({
                               'email': emailController.text.trim(),
+
                               'role': selectedRole,
+
+                              'name': '',
+                              'studentId': '',
+                              'department': '',
+                              'session': '',
+                              'address': '',
+                              'contact': '',
+                              'bloodGroup': '',
+                              'guardianNumber': '',
                             });
 
                         Navigator.pop(context);

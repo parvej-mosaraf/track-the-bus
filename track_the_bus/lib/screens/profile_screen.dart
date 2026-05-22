@@ -1,63 +1,96 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-
-    final user =
-        FirebaseAuth.instance.currentUser;
+    final uid = FirebaseAuth.instance.currentUser!.uid;
 
     return Scaffold(
-
       appBar: AppBar(
         title: const Text("Profile"),
+
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const EditProfileScreen(),
+                ),
+              );
+            },
+
+            icon: const Icon(Icons.edit),
+          ),
+        ],
       ),
 
-      body: Padding(
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .snapshots(),
 
-        padding: const EdgeInsets.all(24),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        child: Column(
+          final data = snapshot.data!.data() as Map<String, dynamic>;
 
-          children: [
+          Widget infoTile(String title, String value) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16),
 
-            const CircleAvatar(
-              radius: 50,
-              child: Icon(
-                Icons.person,
-                size: 50,
+              child: Text(
+                "$title: $value",
+
+                style: const TextStyle(fontSize: 18),
               ),
+            );
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+
+              children: [
+                const Center(
+                  child: CircleAvatar(
+                    radius: 50,
+                    child: Icon(Icons.person, size: 50),
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                infoTile("Name", data['name'] ?? ''),
+
+                infoTile("ID", data['studentId'] ?? ''),
+
+                infoTile("Dept", data['department'] ?? ''),
+
+                infoTile("Session", data['session'] ?? ''),
+
+                infoTile("Address", data['address'] ?? ''),
+
+                infoTile("Contact", data['contact'] ?? ''),
+
+                infoTile("Blood Group", data['bloodGroup'] ?? ''),
+
+                infoTile("Guardian’s Number", data['guardianNumber'] ?? ''),
+              ],
             ),
-
-            const SizedBox(height: 20),
-
-            Text(
-              user?.email ?? "No Email",
-
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            ListTile(
-              leading: const Icon(Icons.badge),
-              title: const Text("Student ID"),
-              subtitle: const Text("2026-XXXX"),
-            ),
-
-            ListTile(
-              leading: const Icon(Icons.school),
-              title: const Text("Department"),
-              subtitle: const Text("IoT Engineering"),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

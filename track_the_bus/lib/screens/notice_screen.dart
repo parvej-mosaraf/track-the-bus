@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class NoticeScreen extends StatelessWidget {
@@ -8,18 +9,44 @@ class NoticeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text("Notices")),
 
-      body: ListView(
-        children: const [
-          ListTile(
-            leading: Icon(Icons.notifications),
-            title: Text("Bus A delayed by 10 mins"),
-          ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('notices')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
 
-          ListTile(
-            leading: Icon(Icons.notifications),
-            title: Text("Route changed today"),
-          ),
-        ],
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final notices = snapshot.data!.docs;
+
+          if (notices.isEmpty) {
+            return const Center(child: Text("No notices available"));
+          }
+
+          return ListView.builder(
+            itemCount: notices.length,
+
+            itemBuilder: (context, index) {
+              final notice = notices[index];
+
+              return Card(
+                margin: const EdgeInsets.all(12),
+
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+
+                  child: Text(
+                    notice['message'],
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
