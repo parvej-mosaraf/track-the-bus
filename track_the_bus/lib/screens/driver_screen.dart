@@ -200,23 +200,7 @@ class _DriverScreenState extends State<DriverScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Driver Mode"),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CreateNoticeScreen(),
-                ),
-              );
-            },
-
-            icon: const Icon(Icons.add_alert),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text("Driver Mode")),
       drawer: Drawer(
         child: Column(
           children: [
