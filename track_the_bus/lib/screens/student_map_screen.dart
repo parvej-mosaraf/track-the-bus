@@ -5,6 +5,14 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 
+import 'profile_screen.dart';
+import 'notice_screen.dart';
+import 'settings_screen.dart';
+import 'help_screen.dart';
+import 'welcome_screen.dart';
+
+import 'package:firebase_auth/firebase_auth.dart';
+
 class StudentMapScreen extends StatefulWidget {
   const StudentMapScreen({super.key});
 
@@ -182,25 +190,49 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
             ListTile(
               leading: const Icon(Icons.person),
               title: const Text("Profile"),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              },
             ),
 
             ListTile(
               leading: const Icon(Icons.notifications),
               title: const Text("Notice"),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NoticeScreen()),
+                );
+              },
             ),
 
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text("Settings"),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
             ),
 
             ListTile(
               leading: const Icon(Icons.help),
               title: const Text("Help & Feedback"),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HelpScreen()),
+                );
+              },
             ),
 
             ListTile(
@@ -208,7 +240,17 @@ class _StudentMapScreenState extends State<StudentMapScreen> {
               title: const Text("Logout"),
 
               onTap: () async {
-                Navigator.pop(context);
+                await FirebaseAuth.instance.signOut();
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+
+                  MaterialPageRoute(
+                    builder: (context) => const WelcomeScreen(),
+                  ),
+
+                  (route) => false,
+                );
               },
             ),
 
