@@ -1,151 +1,338 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'create_notice_screen.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 
-class AdminScreen extends StatelessWidget {
+import 'notice_screen.dart';
+import 'profile_screen.dart';
+import 'settings_screen.dart';
+import 'help_screen.dart';
+import 'welcome_screen.dart';
+
+import 'package:firebase_auth/firebase_auth.dart';
+
+class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
+
+  @override
+  State<AdminScreen> createState() => _AdminScreenState();
+}
+
+class _AdminScreenState extends State<AdminScreen> {
+  GoogleMapController? mapController;
+
+  LatLng adminPosition = const LatLng(23.8103, 90.4125);
+
+  bool isStreaming = false;
+
+  StreamSubscription<Position>? positionStream;
+
+  @override
+  void initState() {
+    super.initState();
+
+    getAdminLocation();
+  }
+
+  Future<void> getAdminLocation() async {
+    LocationPermission permission = await Geolocator.requestPermission();
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition();
+
+    setState(() {
+      adminPosition = LatLng(position.latitude, position.longitude);
+    });
+  }
+
+  void goToMyLocation() {
+    mapController?.animateCamera(CameraUpdate.newLatLng(adminPosition));
+  }
+
+  Future<void> startStreaming() async {
+    LocationPermission permission = await Geolocator.requestPermission();
+
+    if (permission == LocationPermission.denied) {
+      return;
+    }
+
+    setState(() {
+      isStreaming = true;
+    });
+
+    positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 5,
+          ),
+        ).listen((Position position) async {
+          await FirebaseFirestore.instance
+              .collection('bus_locations')
+              .doc('bus_1')
+              .set({
+                'latitude': position.latitude,
+
+                'longitude': position.longitude,
+              });
+
+          setState(() {
+            adminPosition = LatLng(position.latitude, position.longitude);
+          });
+        });
+  }
+
+  Future<void> stopStreaming() async {
+    await positionStream?.cancel();
+
+    setState(() {
+      isStreaming = false;
+    });
+  }
+
+  Future<void> handleStreaming() async {
+    if (!isStreaming) {
+      showDialog(
+        context: context,
+
+        builder: (_) => AlertDialog(
+          title: const Text("Start Bus Streaming?"),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+
+              child: const Text("Cancel"),
+            ),
+
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                await startStreaming();
+              },
+
+              child: const Text("Start"),
+            ),
+          ],
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+
+        builder: (_) => AlertDialog(
+          title: const Text("Stop Bus Streaming?"),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+
+              child: const Text("Cancel"),
+            ),
+
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                await stopStreaming();
+              },
+
+              child: const Text("Stop"),
+            ),
+          ],
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Admin Dashboard"),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CreateNoticeScreen(),
-                ),
-              );
-            },
+      appBar: AppBar(title: const Text("Admin Panel")),
 
-            icon: const Icon(Icons.add_alert),
-          ),
-        ],
-      ),
-
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-
+      drawer: Drawer(
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: dashboardCard(
-                    title: "Users",
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .snapshots(),
-                  ),
-                ),
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.blue),
 
-                const SizedBox(width: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
 
-                Expanded(
-                  child: dashboardCard(
-                    title: "Stop Requests",
-                    stream: FirebaseFirestore.instance
-                        .collection('stop_requests')
-                        .where('status', isEqualTo: 'pending')
-                        .snapshots(),
+                children: [
+                  CircleAvatar(radius: 30, child: Icon(Icons.person)),
+
+                  SizedBox(height: 10),
+
+                  Text(
+                    "Admin Panel",
+
+                    style: TextStyle(color: Colors.white, fontSize: 22),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
 
-            const SizedBox(height: 20),
+            ListTile(
+              leading: const Icon(Icons.person),
 
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .snapshots(),
+              title: const Text("Profile"),
 
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
+              },
+            ),
 
-                  final users = snapshot.data!.docs;
+            ListTile(
+              leading: const Icon(Icons.notifications),
 
-                  return ListView.builder(
-                    itemCount: users.length,
+              title: const Text("Notices"),
 
-                    itemBuilder: (context, index) {
-                      final user = users[index];
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NoticeScreen()),
+                );
+              },
+            ),
 
-                      return Card(
-                        child: ListTile(
-                          leading: const Icon(Icons.person),
+            ListTile(
+              leading: const Icon(Icons.settings),
 
-                          title: Text(user['email']),
+              title: const Text("Settings"),
 
-                          subtitle: Text("Role: ${user['role']}"),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.help),
+
+              title: const Text("Help & Feedback"),
+
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HelpScreen()),
+                );
+              },
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.logout),
+
+              title: const Text("Logout"),
+
+              onTap: () async {
+                await FirebaseAuth.instance.signOut();
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+
+                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+
+                  (route) => false,
+                );
+              },
+            ),
+
+            const Spacer(),
+
+            const Padding(
+              padding: EdgeInsets.all(16),
+
+              child: Text("Version 2026.0.0"),
             ),
           ],
         ),
       ),
-    );
-  }
 
-  Widget dashboardCard({
-    required String title,
+      body: Stack(
+        children: [
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: adminPosition,
+              zoom: 15,
+            ),
 
-    required Stream<QuerySnapshot> stream,
-  }) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: stream,
+            myLocationEnabled: true,
 
-      builder: (context, snapshot) {
-        int count = 0;
+            onMapCreated: (controller) {
+              mapController = controller;
+            },
 
-        if (snapshot.hasData) {
-          count = snapshot.data!.docs.length;
-        }
+            markers: {
+              Marker(
+                markerId: const MarkerId('admin'),
 
-        return Container(
-          height: 140,
-
-          decoration: BoxDecoration(
-            color: Colors.blue,
-
-            borderRadius: BorderRadius.circular(20),
+                position: adminPosition,
+              ),
+            },
           ),
 
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          Positioned(
+            bottom: 20,
+            left: 20,
 
+            child: Row(
               children: [
-                Text(
-                  count.toString(),
-                  style: const TextStyle(
-                    fontSize: 42,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                FloatingActionButton(
+                  heroTag: "requests",
+
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NoticeScreen()),
+                    );
+                  },
+
+                  child: const Icon(Icons.stop_circle),
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(width: 12),
 
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 20, color: Colors.white),
+                FloatingActionButton(
+                  heroTag: "stream",
+
+                  backgroundColor: isStreaming ? Colors.red : Colors.green,
+
+                  onPressed: handleStreaming,
+
+                  child: Icon(isStreaming ? Icons.stop : Icons.play_arrow),
+                ),
+
+                const SizedBox(width: 12),
+
+                FloatingActionButton(
+                  heroTag: "location",
+
+                  onPressed: goToMyLocation,
+
+                  child: const Icon(Icons.my_location),
                 ),
               ],
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

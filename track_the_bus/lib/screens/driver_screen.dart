@@ -1,9 +1,20 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'create_notice_screen.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+
+import 'notice_screen.dart';
+import 'profile_screen.dart';
+import 'settings_screen.dart';
+import 'help_screen.dart';
+import 'welcome_screen.dart';
+
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DriverScreen extends StatefulWidget {
   const DriverScreen({super.key});
@@ -13,6 +24,12 @@ class DriverScreen extends StatefulWidget {
 }
 
 class _DriverScreenState extends State<DriverScreen> {
+  GoogleMapController? mapController;
+
+  LatLng driverPosition = const LatLng(23.8103, 90.4125);
+
+  bool isStreaming = false;
+
   StreamSubscription<Position>? positionStream;
 
   @override
@@ -54,6 +71,126 @@ class _DriverScreenState extends State<DriverScreen> {
         });
   }
 
+  void goToMyLocation() {
+    mapController?.animateCamera(CameraUpdate.newLatLng(driverPosition));
+  }
+
+  Future<void> startStreaming() async {
+    LocationPermission permission = await Geolocator.requestPermission();
+
+    if (permission == LocationPermission.denied) {
+      return;
+    }
+
+    setState(() {
+      isStreaming = true;
+    });
+
+    positionStream =
+        Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            distanceFilter: 5,
+          ),
+        ).listen((Position position) async {
+          await FirebaseFirestore.instance
+              .collection('bus_locations')
+              .doc('bus_1')
+              .set({
+                'latitude': position.latitude,
+
+                'longitude': position.longitude,
+              });
+
+          setState(() {
+            driverPosition = LatLng(position.latitude, position.longitude);
+          });
+        });
+  }
+
+  Future<void> stopStreaming() async {
+    await positionStream?.cancel();
+
+    setState(() {
+      isStreaming = false;
+    });
+  }
+
+  Future<void> handleStreaming() async {
+    if (!isStreaming) {
+      showDialog(
+        context: context,
+
+        builder: (_) => AlertDialog(
+          title: const Text("Start Bus Streaming?"),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+
+              child: const Text("Cancel"),
+            ),
+
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                await startStreaming();
+              },
+
+              child: const Text("Start"),
+            ),
+          ],
+        ),
+      );
+    } else {
+      showDialog(
+        context: context,
+
+        builder: (_) => AlertDialog(
+          title: const Text("Stop Bus Streaming?"),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+
+              child: const Text("Cancel"),
+            ),
+
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                await stopStreaming();
+              },
+
+              child: const Text("Stop"),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> getDriverLocation() async {
+    LocationPermission permission = await Geolocator.requestPermission();
+
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition();
+
+    setState(() {
+      driverPosition = LatLng(position.latitude, position.longitude);
+    });
+  }
+
   @override
   void dispose() {
     positionStream?.cancel();
@@ -80,60 +217,177 @@ class _DriverScreenState extends State<DriverScreen> {
           ),
         ],
       ),
+      drawer: Drawer(
+        child: Column(
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.blue),
 
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('stop_requests')
-            .where('status', isEqualTo: 'pending')
-            .snapshots(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
 
-        builder: (context, snapshot) {
-          int requestCount = 0;
+                children: [
+                  CircleAvatar(radius: 30, child: Icon(Icons.person)),
 
-          if (snapshot.hasData) {
-            requestCount = snapshot.data!.docs.length;
-          }
+                  SizedBox(height: 10),
 
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+                  Text(
+                    "Driver Panel",
 
-              children: [
-                const Text(
-                  "Sharing Live Bus Location",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-
-                const SizedBox(height: 40),
-
-                Text(
-                  "Stop Requests: $requestCount",
-                  style: const TextStyle(
-                    fontSize: 32,
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
+                    style: TextStyle(color: Colors.white, fontSize: 22),
                   ),
-                ),
+                ],
+              ),
+            ),
 
-                const SizedBox(height: 30),
+            ListTile(
+              leading: const Icon(Icons.person),
 
-                ElevatedButton(
-                  onPressed: () async {
-                    final requests = await FirebaseFirestore.instance
-                        .collection('stop_requests')
-                        .get();
+              title: const Text("Profile"),
 
-                    for (var doc in requests.docs) {
-                      await doc.reference.update({'status': 'completed'});
-                    }
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
+              },
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.notifications),
+
+              title: const Text("Notices"),
+
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NoticeScreen()),
+                );
+              },
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.settings),
+
+              title: const Text("Settings"),
+
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                );
+              },
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.help),
+
+              title: const Text("Help & Feedback"),
+
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HelpScreen()),
+                );
+              },
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.logout),
+
+              title: const Text("Logout"),
+
+              onTap: () async {
+                await FirebaseAuth.instance.signOut();
+
+                Navigator.pushAndRemoveUntil(
+                  context,
+
+                  MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+
+                  (route) => false,
+                );
+              },
+            ),
+
+            const Spacer(),
+
+            const Padding(
+              padding: EdgeInsets.all(16),
+
+              child: Text("Version 2026.0.0"),
+            ),
+          ],
+        ),
+      ),
+
+      body: Stack(
+        children: [
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: driverPosition,
+              zoom: 15,
+            ),
+
+            myLocationEnabled: true,
+
+            onMapCreated: (controller) {
+              mapController = controller;
+            },
+
+            markers: {
+              Marker(
+                markerId: const MarkerId('driver'),
+
+                position: driverPosition,
+              ),
+            },
+          ),
+
+          Positioned(
+            bottom: 20,
+            left: 20,
+
+            child: Row(
+              children: [
+                FloatingActionButton(
+                  heroTag: "requests",
+
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NoticeScreen()),
+                    );
                   },
 
-                  child: const Text("Clear Requests"),
+                  child: const Icon(Icons.stop_circle),
+                ),
+
+                const SizedBox(width: 12),
+
+                FloatingActionButton(
+                  heroTag: "stream",
+
+                  backgroundColor: isStreaming ? Colors.red : Colors.green,
+
+                  onPressed: handleStreaming,
+
+                  child: Icon(isStreaming ? Icons.stop : Icons.play_arrow),
+                ),
+
+                const SizedBox(width: 12),
+
+                FloatingActionButton(
+                  heroTag: "location",
+
+                  onPressed: goToMyLocation,
+
+                  child: const Icon(Icons.my_location),
                 ),
               ],
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
